@@ -21,7 +21,7 @@ def parse_file(filename):
                 buffer = []
         if len(buffer):
             paragraphs.append((" ").join(buffer))
-    return paragraphs
+        return paragraphs
 
 
 def save_embeddings(filename, embeddings):
@@ -40,7 +40,7 @@ def load_embeddings(filename):
         return json.load(f)
 
 def get_embeddings(filename, modelname, chunks):
-    if (embeddings := load_embeddings(filename)):
+    if (embeddings := load_embeddings(filename)) is not False:
         return embeddings
     
     embeddings = [ollama.embeddings(model=modelname, prompt=chunk)["embedding"] for chunk in chunks]
@@ -52,7 +52,7 @@ def find_most_similar(needle, haystack):
     needle_norm = norm(needle)
     similarity_scores = [np.dot(needle, item)/(needle_norm * norm(item)) for item in haystack]
     
-    return sorted(zip(similarity_scores, range(len(similarity_scores))), reverse=True)
+    return sorted(zip(similarity_scores, range(len(haystack))), reverse=True)
 
 def main():
     
@@ -64,18 +64,21 @@ def main():
     
     filename = "peter-pan.txt"
     paragraphs = parse_file(filename)
+    model = "llama3"
+    # model = "mistral"
+    filename = f"{model}-{filename}"
     start = time.perf_counter()
-    embeddings = get_embeddings(filename, "llama3", paragraphs)
+    paragraph_embeddings = get_embeddings(filename, "llama3", paragraphs)
     print(time.perf_counter() - start)
     
-    # prompt = "who is the story's protagonist?"
+    # prompt = "who is the story's primary villain?"
     prompt = input("Enter your question: ")
-    prompt_embedding = ollama.embeddings(model="mistral", prompt=prompt)["embedding"]
+    prompt_embedding = ollama.embeddings(model, prompt)["embedding"]
     
-    most_similar_chunks = find_most_similar(prompt_embedding, embeddings)[:10]
+    most_similar_chunks = find_most_similar(prompt_embedding, paragraph_embeddings)[:5]
     
     response = ollama.chat(
-        model="llama3",
+        model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT
             + "\n".join([paragraphs[item[1]] for item in most_similar_chunks])},

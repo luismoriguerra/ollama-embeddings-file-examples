@@ -68,7 +68,7 @@ clean:
 # run 
 run: install
 	@echo "Running the project..."
-	$(PYTHON) src/main.py
+	$(PYTHON) main.py
 
 # Help
 help:
